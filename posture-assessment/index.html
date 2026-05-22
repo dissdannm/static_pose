@@ -21,12 +21,12 @@
   </script>
 
   <!-- Application Scripts (order matters: no deps → with deps → orchestrator) -->
-  <script src="js/pose_detector.js?v=6"></script>
-  <script src="js/posture_analyzer.js?v=6"></script>
-  <script src="js/posture_rules.js?v=6"></script>
-  <script src="js/visualizer.js?v=6"></script>
-  <script src="js/llm_client.js?v=6"></script>
-  <script src="js/app.js?v=6"></script>
+  <script src="js/pose_detector.js?v=7"></script>
+  <script src="js/posture_analyzer.js?v=7"></script>
+  <script src="js/posture_rules.js?v=7"></script>
+  <script src="js/visualizer.js?v=7"></script>
+  <script src="js/llm_client.js?v=7"></script>
+  <script src="js/app.js?v=7"></script>
 </head>
 <body>
   <div class="app-container">
@@ -147,7 +147,10 @@
       </div>
 
       <p style="font-size:11px;color:#888;margin-bottom:8px;">
-        💡 手机用户：电脑运行 <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:3px;">ollama serve</code>，手机连同一 WiFi，地址填电脑 IP
+        💡 电脑端需同时设环境变量避免跨域问题：<br>
+        <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:3px;">set OLLAMA_HOST=0.0.0.0</code><br>
+        <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:3px;">set OLLAMA_ORIGINS=*</code><br>
+        然后 <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:3px;">ollama serve</code>
       </p>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <button class="btn btn-sm" id="btn-llm-test" style="flex:1;">🔍 测试连接</button>

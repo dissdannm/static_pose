@@ -95,7 +95,8 @@ const LLMClient = (() => {
 
   async function checkOllama(model = ollamaModel) {
     try {
-      const resp = await fetch("http://localhost:11434/api/tags", {
+      const baseUrl = ollamaEndpoint.replace("/api/generate", "");
+      const resp = await fetch(baseUrl + "/api/tags", {
         method: "GET",
         signal: AbortSignal.timeout(3000)
       });
