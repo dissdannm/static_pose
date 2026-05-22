@@ -267,38 +267,53 @@ const PostureApp = (() => {
       } else {
         // ── Ollama path ──
         elements.llmGenerateBtn.textContent = "连接中...";
-        llmText.textContent = "正在检查 Ollama 服务...";
+        llmText.textContent = "";
         progressBar.style.display = "none";
         progressText.style.display = "none";
 
+        // Quick connectivity check (informational only)
         const checkResult = await LLMClient.checkOllama();
         if (!checkResult.available) {
-          // Try auto-fallback to WebLLM
           const webgpu = await LLMClient.checkWebGPU();
           if (webgpu.available) {
-            llmText.textContent = "Ollama 不可用，切换到浏览器内置 WebLLM...\n首次使用需下载模型(~1GB)，请耐心等待。\n";
+            llmText.textContent = "Ollama 不可用(" + (checkResult.error || "") + ")，切到 WebLLM...\n";
             LLMClient.backend = "webllm";
             elements.llmBackendSelect.value = "webllm";
             elements.llmGenerateBtn.disabled = false;
-            generateLLMReport(); // retry with WebLLM
+            generateLLMReport();
             return;
           }
-          llmText.textContent = `⚠️ 无可用 LLM 后端\n\nOllama: ${checkResult.error}\nWebLLM: ${webgpu.error || '不可用'}\n\n使用规则引擎报告:\n\n${LLMClient.generateFallbackReport(snapshotData.assessment, snapshotData.view)}`;
+          llmText.textContent = `❌ 连接失败: ${checkResult.error}\n请在电脑上运行:\n  ollama serve\n并确保 OLLAMA_HOST=0.0.0.0\n\n规则引擎报告:\n\n${LLMClient.generateFallbackReport(snapshotData.assessment, snapshotData.view)}`;
           elements.llmGenerateBtn.disabled = false;
           elements.llmGenerateBtn.textContent = "重试";
           return;
         }
 
+        if (!checkResult.hasRequestedModel) {
+          llmText.textContent = `⚠️ 模型未安装！可用模型: ${checkResult.models.join(", ") || "无"}\n\n请在电脑运行:\n  ollama pull ${LLMClient.ollamaModel}\n\n完成后重试。\n\n规则引擎报告:\n\n${LLMClient.generateFallbackReport(snapshotData.assessment, snapshotData.view)}`;
+          elements.llmGenerateBtn.disabled = false;
+          elements.llmGenerateBtn.textContent = "重试";
+          return;
+        }
+
+        // Generate — try streaming first, fall back to non-streaming
         llmText.textContent = "正在生成报告...\n\n";
-
-        const report = await LLMClient.generateWithOllamaStream(prompt, {
-          onToken: (token) => {
-            llmText.textContent += token;
-            llmText.scrollTop = llmText.scrollHeight;
+        try {
+          const report = await LLMClient.generateWithOllamaStream(prompt, {
+            onToken: (token) => {
+              llmText.textContent += token;
+              llmText.scrollTop = llmText.scrollHeight;
+            }
+          });
+          if (report) {
+            llmText.textContent = report;
           }
-        });
-
-        llmText.textContent = report;
+        } catch (streamErr) {
+          console.warn("[App] Ollama stream failed, trying non-stream:", streamErr.message);
+          llmText.textContent += "\n\n[流式失败，尝试普通模式...]\n";
+          const report = await LLMClient.generateWithOllama(prompt);
+          llmText.textContent = report;
+        }
         elements.llmGenerateBtn.textContent = "重新生成";
       }
     } catch (err) {
