@@ -7,7 +7,7 @@
 
 const LLMClient = (() => {
   // ─── Shared config ──────────────────────────────────────────────────────────
-  let llmBackend = "ollama";  // "ollama" | "webllm" — ollama is default (WebLLM blocked in China due to HF)
+  let llmBackend = "ollama";  // "ollama" | "webllm"
 
   // Ollama settings
   let ollamaEndpoint = "http://localhost:11434/api/generate";

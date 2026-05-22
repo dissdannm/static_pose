@@ -570,6 +570,26 @@ const PostureApp = (() => {
       elements.llmTestResult.textContent = `请在电脑终端运行：\n\n  ollama pull ${model}\n\n下载完成后点击「测试连接」验证。`;
     });
 
+    // Save settings
+    elements.llmSettingsSave.addEventListener("click", () => {
+      try {
+        const newBackend = elements.llmBackendSelect.value;
+        LLMClient.backend = newBackend;
+        if (elements.llmEndpointInput.value) LLMClient.ollamaEndpoint = elements.llmEndpointInput.value;
+        if (elements.llmOllamaModelInput.value) LLMClient.ollamaModel = elements.llmOllamaModelInput.value;
+        if (elements.llmWebllmModel.value) LLMClient.webllmModel = elements.llmWebllmModel.value;
+
+        const resultEl = elements.llmTestResult;
+        resultEl.style.display = "block";
+        resultEl.style.color = "#00e676";
+        const label = newBackend === "webllm" ? "WebLLM (浏览器内置)" : "Ollama";
+        resultEl.textContent = `✅ 已保存！当前: ${label}`;
+        setTimeout(() => { elements.llmSettingsPanel.classList.remove("visible"); }, 800);
+      } catch (e) {
+        console.error("Save settings error:", e);
+      }
+    });
+
     function updateLLMSettingsUI() {
       const isWebLLM = elements.llmBackendSelect.value === "webllm";
       elements.llmEndpointGroup.style.display = isWebLLM ? "none" : "block";
