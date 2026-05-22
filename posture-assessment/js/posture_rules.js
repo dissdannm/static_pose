@@ -495,8 +495,8 @@ function evaluateAllMetrics(metricValues, view) {
       if (results[mKey]) {
         regionScore += results[mKey].score;
         regionCount++;
-        if (results[mKey].severity !== "normal" && !primaryIssue) {
-          primaryIssue = results[mKey].label_en.toLowerCase().replace(/\s+/g, "_");
+        if (results[mKey].severity !== "normal" && !primaryIssue && results[mKey].label_en) {
+          primaryIssue = String(results[mKey].label_en).toLowerCase().replace(/\s+/g, "_");
         }
       }
     }

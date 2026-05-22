@@ -294,10 +294,8 @@ const Visualizer = (() => {
     // Draw skeleton
     drawSkeleton(ctx, landmarks, w, h);
 
-    // Draw force lines
-    if (assessment) {
-      drawForceLines(ctx, landmarks, assessment, view, w, h);
-    }
+    // Draw force lines (always draw if landmarks available, use default grade if no assessment)
+    drawForceLines(ctx, landmarks, assessment || { force_line_grade: "A" }, view, w, h);
 
     ctx.restore();
 
