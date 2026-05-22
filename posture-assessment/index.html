@@ -21,12 +21,12 @@
   </script>
 
   <!-- Application Scripts (order matters: no deps → with deps → orchestrator) -->
-  <script src="js/pose_detector.js"></script>
-  <script src="js/posture_analyzer.js"></script>
-  <script src="js/posture_rules.js"></script>
-  <script src="js/visualizer.js"></script>
-  <script src="js/llm_client.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/pose_detector.js?v=4"></script>
+  <script src="js/posture_analyzer.js?v=4"></script>
+  <script src="js/posture_rules.js?v=4"></script>
+  <script src="js/visualizer.js?v=4"></script>
+  <script src="js/llm_client.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
 </head>
 <body>
   <div class="app-container">
@@ -98,11 +98,11 @@
         <button class="btn btn-sm" id="btn-report-close">✕ 关闭</button>
       </div>
       <div class="panel-body" id="report-content">
-        <!-- Dynamically filled -->
+        <!-- Dynamically filled: summary + regions + metrics -->
       </div>
-      <div class="panel-body" style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0;">
-        <!-- LLM Section -->
-        <button class="btn btn-primary" id="btn-llm-generate" style="width:100%; margin-bottom: 12px;">
+      <!-- Fixed footer: AI button always visible -->
+      <div class="panel-footer">
+        <button class="btn btn-primary" id="btn-llm-generate">
           AI 生成详细报告
         </button>
         <div class="llm-output" id="llm-output" style="display:none;">

@@ -330,6 +330,18 @@ html, body {
   border-radius: 2px;
 }
 
+.panel-footer {
+  flex-shrink: 0;
+  padding: 12px 18px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.2);
+}
+
+.panel-footer .btn-primary {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
 /* ─── Report Content ───────────────────────────────────────────────────────── */
 .report-summary {
   display: flex;
