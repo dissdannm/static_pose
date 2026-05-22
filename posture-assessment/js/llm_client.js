@@ -14,17 +14,19 @@ const LLMClient = (() => {
   let ollamaModel = "qwen2.5:3b";
 
   // WebLLM settings
-  let webllmModel = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
+  let webllmModel = "Qwen3-1.7B-q4f16_1-MLC";
   let webllmEngine = null;
   let webllmLoading = false;
   let webllmLoadProgress = 0;
 
-  // Available WebLLM models (small, mobile-friendly)
+  // Available WebLLM models (small, mobile-friendly, verified working)
   const WEBLLM_MODELS = [
-    { id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",       name: "Qwen2.5 1.5B (推荐)",  size: "~1.0 GB" },
-    { id: "Qwen2.5-3B-Instruct-q4f16_1-MLC",         name: "Qwen2.5 3B",           size: "~2.0 GB" },
+    { id: "Qwen3-1.7B-q4f16_1-MLC",                  name: "Qwen3 1.7B (推荐)",    size: "~1.0 GB" },
+    { id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",       name: "Qwen2.5 1.5B",         size: "~1.0 GB" },
+    { id: "Qwen3-0.6B-q4f16_1-MLC",                  name: "Qwen3 0.6B (最小)",    size: "~0.4 GB" },
+    { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC",        name: "Llama 3.2 1B",         size: "~0.7 GB" },
     { id: "SmolLM2-1.7B-Instruct-q4f16_1-MLC",       name: "SmolLM2 1.7B",         size: "~1.0 GB" },
-    { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC",        name: "Llama 3.2 1B",         size: "~0.7 GB" }
+    { id: "Qwen2.5-3B-Instruct-q4f16_1-MLC",         name: "Qwen2.5 3B",           size: "~2.0 GB" }
   ];
 
   // ─── Ollama Backend ─────────────────────────────────────────────────────────
@@ -142,7 +144,7 @@ const LLMClient = (() => {
 
     try {
       const { CreateMLCEngine } = await import(
-        "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.58/+esm"
+        "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.64/+esm"
       );
 
       webllmEngine = await CreateMLCEngine(webllmModel, {
