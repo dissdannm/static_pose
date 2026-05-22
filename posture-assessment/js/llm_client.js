@@ -144,7 +144,7 @@ const LLMClient = (() => {
 
     try {
       const { CreateMLCEngine } = await import(
-        "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.64/+esm"
+        "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.70/+esm"
       );
 
       webllmEngine = await CreateMLCEngine(webllmModel, {
