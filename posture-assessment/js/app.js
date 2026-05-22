@@ -514,7 +514,8 @@ const PostureApp = (() => {
       photoUploadBtn: document.getElementById("btn-photo-upload"),
       llmTestBtn: document.getElementById("btn-llm-test"),
       llmPullBtn: document.getElementById("btn-llm-pull"),
-      llmTestResult: document.getElementById("llm-test-result")
+      llmTestResult: document.getElementById("llm-test-result"),
+      downloadMdBtn: document.getElementById("btn-download-md")
     };
 
     // Set canvas size
@@ -548,6 +549,25 @@ const PostureApp = (() => {
     });
 
     // Photo upload
+    // MD download
+    elements.downloadMdBtn.addEventListener("click", () => {
+      if (!snapshotData) {
+        showToast("请先拍照评估", "warning");
+        return;
+      }
+      const md = generateMarkdownReport(snapshotData.assessment, snapshotData.view);
+      const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "体态评估报告_" + snapshotData.timestamp.slice(0, 10) + ".md";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("MD 报告已下载", "success");
+    });
+
     elements.photoUploadBtn.addEventListener("click", () => {
       elements.photoInput.click();
     });

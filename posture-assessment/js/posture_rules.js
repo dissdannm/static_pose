@@ -564,7 +564,119 @@ ${flags || "无明显体态问题"}
 请使用专业但通俗易懂的语言，适合普通用户阅读。`;
 }
 
+/**
+ * Generate a Markdown report file for download.
+ * Includes deviations from normal, severity, and literature references.
+ */
+function generateMarkdownReport(assessment, view) {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("zh-CN") + " " + now.toLocaleTimeString("zh-CN");
+  const viewLabel = view === "sagittal" ? "侧面观（矢状面）" : "正面观（冠状面）";
+  const riskLabel = { low: "低", medium: "中", high: "高" };
+  const severityIcon = { normal: "✓", mild: "△", moderate: "▲", severe: "●" };
+  const severityLabel = { normal: "正常", mild: "轻度异常", moderate: "中度异常", severe: "重度异常" };
+
+  let md = "";
+  md += `# 体态评估报告\n\n`;
+  md += `## 基本信息\n\n`;
+  md += `| 项目 | 内容 |\n|------|------|\n`;
+  md += `| 评估日期 | ${dateStr} |\n`;
+  md += `| 评估视角 | ${viewLabel} |\n`;
+  md += `| 综合评分 | **${assessment.overall_score}/100** |\n`;
+  md += `| 风险等级 | ${riskLabel[assessment.risk_level] || assessment.risk_level} |\n`;
+  md += `| 力线等级 | ${assessment.force_line_grade} |\n`;
+  md += `\n---\n\n`;
+
+  // Region summary
+  md += `## 区域评分\n\n`;
+  md += `| 区域 | 评分 | 主要问题 |\n|------|------|----------|\n`;
+  for (const [key, region] of Object.entries(assessment.regions)) {
+    const issue = region.primary_issue ? region.primary_issue.replace(/_/g, " ") : "无";
+    md += `| ${region.name_zh} | ${region.score}/100 | ${issue} |\n`;
+  }
+  md += `\n---\n\n`;
+
+  // Detailed metrics by category
+  const categories = {
+    head_neck: "## 头颈部指标",
+    shoulders_upper_back: "## 肩与上背指标",
+    pelvis_core: "## 骨盆与核心指标",
+    lower_limbs: "## 下肢力线指标"
+  };
+
+  for (const [catKey, catTitle] of Object.entries(categories)) {
+    const catMetrics = Object.entries(assessment.metrics)
+      .filter(([, m]) => m.category === catKey);
+
+    if (catMetrics.length === 0) continue;
+
+    md += catTitle + "\n\n";
+    md += `| 指标 | 测量值 | 正常范围 | 偏移量 | 等级 |\n`;
+    md += `|------|--------|----------|--------|------|\n`;
+
+    for (const [key, m] of catMetrics) {
+      const metricDef = POSTURE_METRICS[key];
+      const normalStr = metricDef ? `${metricDef.normal[0]}–${metricDef.normal[1]}` : "—";
+      let deviation = "—";
+
+      if (metricDef && typeof m.value === "number") {
+        if (m.value < metricDef.normal[0]) {
+          deviation = `↓ ${(metricDef.normal[0] - m.value).toFixed(1)}`;
+        } else if (m.value > metricDef.normal[1]) {
+          deviation = `↑ ${(m.value - metricDef.normal[1]).toFixed(1)}`;
+        } else {
+          deviation = "正常范围内";
+        }
+      }
+
+      const icon = severityIcon[m.severity] || "";
+      md += `| ${icon} ${m.name_zh} | ${m.value?.toFixed?.(1) ?? m.value} ${m.unit} | ${normalStr} ${m.unit} | ${deviation} | ${severityLabel[m.severity] || m.severity} |\n`;
+    }
+    md += `\n`;
+  }
+
+  // Issues found
+  md += `---\n\n## 发现的问题\n\n`;
+  if (assessment.risk_flags.length === 0) {
+    md += `未发现明显体态问题，各项指标在正常范围内。\n\n`;
+  } else {
+    // Sort by severity
+    const sorted = [...assessment.risk_flags].sort((a, b) => {
+      const order = { severe: 3, moderate: 2, mild: 1 };
+      return order[b.severity] - order[a.severity];
+    });
+    for (const flag of sorted) {
+      const icon = severityIcon[flag.severity];
+      md += `- ${icon} **${flag.name_zh}** — ${flag.label_zh}\n`;
+    }
+    md += `\n`;
+  }
+
+  // References
+  md += `---\n\n## 参考文献\n\n`;
+  md += `以下阈值标准来源于同行评审的学术文献：\n\n`;
+
+  const refs = new Set();
+  for (const key of Object.keys(assessment.metrics)) {
+    const m = POSTURE_METRICS[key];
+    if (m && m.ref) refs.add(m.ref);
+  }
+  let refNum = 1;
+  for (const ref of refs) {
+    const sources = ref.split(";");
+    for (const src of sources) {
+      md += `${refNum}. ${src.trim()}\n`;
+      refNum++;
+    }
+  }
+
+  md += `\n> 注意：本报告基于 2D 摄像头（MediaPipe Pose Landmarker）采集数据，\n`;
+  md += `> 测量结果为临床近似值，不能替代专业医学诊断。如有疑虑请咨询医生或物理治疗师。\n`;
+
+  return md;
+}
+
 // Export for module use (also available as globals)
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { POSTURE_METRICS, POSTURE_REGIONS, evaluateMetric, evaluateAllMetrics, buildLLMPrompt };
+  module.exports = { POSTURE_METRICS, POSTURE_REGIONS, evaluateMetric, evaluateAllMetrics, buildLLMPrompt, generateMarkdownReport };
 }

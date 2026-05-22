@@ -21,12 +21,12 @@
   </script>
 
   <!-- Application Scripts (order matters: no deps → with deps → orchestrator) -->
-  <script src="js/pose_detector.js?v=12"></script>
-  <script src="js/posture_analyzer.js?v=12"></script>
-  <script src="js/posture_rules.js?v=12"></script>
-  <script src="js/visualizer.js?v=12"></script>
-  <script src="js/llm_client.js?v=12"></script>
-  <script src="js/app.js?v=12"></script>
+  <script src="js/pose_detector.js?v=13"></script>
+  <script src="js/posture_analyzer.js?v=13"></script>
+  <script src="js/posture_rules.js?v=13"></script>
+  <script src="js/visualizer.js?v=13"></script>
+  <script src="js/llm_client.js?v=13"></script>
+  <script src="js/app.js?v=13"></script>
 </head>
 <body>
   <div class="app-container">
@@ -102,9 +102,14 @@
       </div>
       <!-- Fixed footer: AI button always visible -->
       <div class="panel-footer">
-        <button class="btn btn-primary" id="btn-llm-generate">
-          AI 生成详细报告
-        </button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" id="btn-llm-generate" style="flex:1;">
+            AI 生成报告
+          </button>
+          <button class="btn" id="btn-download-md" style="flex:1;">
+            📥 下载 MD 报告
+          </button>
+        </div>
         <div class="llm-output" id="llm-output" style="display:none;">
           <div class="llm-output-header">
             <span>AI 分析报告</span>
