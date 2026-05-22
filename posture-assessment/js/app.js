@@ -13,6 +13,7 @@ const PostureApp = (() => {
   let currentView = "sagittal"; // "sagittal" | "frontal"
   let isRunning = false;
   let isPoseReady = false;
+  let photoMode = false;        // true when viewing uploaded photo
   let lastLandmarks = null;
   let lastMetricValues = null;
   let lastAssessment = null;
@@ -20,6 +21,7 @@ const PostureApp = (() => {
 
   // UI elements
   let elements = {};
+  let savedCanvasSize = { w: 640, h: 480 };
 
   // ─── Camera Setup ───────────────────────────────────────────────────────────
 
@@ -67,6 +69,12 @@ const PostureApp = (() => {
 
   function startLoop() {
     if (animFrameId) return;
+    if (photoMode) {
+      // Restore camera view from photo mode
+      canvasEl.width = savedCanvasSize.w;
+      canvasEl.height = savedCanvasSize.h;
+      photoMode = false;
+    }
     isRunning = true;
     updateButtonStates();
     loop();
@@ -336,6 +344,77 @@ const PostureApp = (() => {
     }
   }
 
+  // ─── Photo Upload ───────────────────────────────────────────────────────────
+
+  async function handlePhotoUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    showToast("正在分析照片...", "info");
+    stopLoop();
+
+    try {
+      // Load image
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = url;
+      });
+      URL.revokeObjectURL(url);
+
+      // Resize canvas to image, enter photo mode
+      photoMode = true;
+      canvasEl.width = img.width;
+      canvasEl.height = img.height;
+      ctx.drawImage(img, 0, 0, img.width, img.height);
+
+      // Run IMAGE mode detection (create temporary landmarker)
+      const result = await PoseDetector.detectImage(img);
+      if (!result) {
+        showToast("照片中未检测到人体，请确保全身清晰可见", "warning");
+        canvasEl.width = savedCanvasSize.w;
+        canvasEl.height = savedCanvasSize.h;
+        startLoop();
+        return;
+      }
+
+      lastLandmarks = result.landmarks;
+      lastMetricValues = PostureAnalyzer.calculateAll(lastLandmarks, currentView);
+
+      if (!lastMetricValues) {
+        showToast("姿态关键点不全，请确保全身在画面中", "warning");
+        canvasEl.width = savedCanvasSize.w;
+        canvasEl.height = savedCanvasSize.h;
+        startLoop();
+        return;
+      }
+
+      lastAssessment = evaluateAllMetrics(lastMetricValues, currentView);
+
+      // Render
+      Visualizer.render(ctx, null, lastLandmarks, lastMetricValues, lastAssessment, currentView, img.width, img.height);
+
+      // Auto-capture
+      snapshotData = {
+        timestamp: new Date().toISOString(),
+        view: currentView,
+        metrics: lastAssessment.metrics,
+        assessment: lastAssessment
+      };
+      showReportPanel();
+      updateMiniHud();
+      showToast("照片分析完成！", "success");
+
+    } catch (err) {
+      console.error("[App] Photo upload error:", err);
+      showToast("照片分析失败: " + err.message, "error");
+    } finally {
+      elements.photoInput.value = "";
+    }
+  }
+
   function showToast(message, type = "info") {
     const toast = document.getElementById("toast");
     if (!toast) return;
@@ -384,14 +463,19 @@ const PostureApp = (() => {
       llmEndpointInput: document.getElementById("llm-endpoint"),
       llmOllamaModelInput: document.getElementById("llm-ollama-model"),
       llmWebllmModel: document.getElementById("llm-webllm-model"),
-      llmSettingsSave: document.getElementById("btn-llm-settings-save")
+      llmSettingsSave: document.getElementById("btn-llm-settings-save"),
+      photoInput: document.getElementById("photo-input"),
+      photoUploadBtn: document.getElementById("btn-photo-upload")
     };
 
     // Set canvas size
     function resizeCanvas() {
+      if (photoMode) return;
       const rect = canvasEl.parentElement.getBoundingClientRect();
       canvasEl.width = rect.width;
       canvasEl.height = rect.height;
+      savedCanvasSize.w = rect.width;
+      savedCanvasSize.h = rect.height;
     }
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
@@ -413,6 +497,12 @@ const PostureApp = (() => {
     elements.llmCloseBtn.addEventListener("click", () => {
       elements.llmOutput.style.display = "none";
     });
+
+    // Photo upload
+    elements.photoUploadBtn.addEventListener("click", () => {
+      elements.photoInput.click();
+    });
+    elements.photoInput.addEventListener("change", handlePhotoUpload);
 
     // LLM Settings
     elements.llmSettingsBtn.addEventListener("click", () => {

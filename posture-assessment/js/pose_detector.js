@@ -8,6 +8,8 @@ const PoseDetector = (() => {
   let poseLandmarker = null;
   let isReady = false;
   let loadingPromise = null;
+  let cachedWasmFileset = null;  // cached for creating IMAGE-mode detector
+  let cachedModelPath = null;
 
   // MediaPipe 33 landmark name → index mapping (same as cccc projects)
   const LANDMARK_NAMES = {
@@ -114,13 +116,15 @@ const PoseDetector = (() => {
                 },
                 runningMode: "VIDEO",
                 numPoses: 1,
-                minPoseDetectionConfidence: 0.5,
-                minPosePresenceConfidence: 0.5,
-                minTrackingConfidence: 0.5
+                minPoseDetectionConfidence: 0.3,
+                minPosePresenceConfidence: 0.3,
+                minTrackingConfidence: 0.3
               }),
               "模型加载(" + modelUrl.split("/").pop() + ")"
             );
             console.log("[PoseDetector] Model loaded from:", modelUrl);
+            cachedWasmFileset = wasmFileset;
+            cachedModelPath = modelUrl;
             break; // success, stop trying
           } catch (e) {
             console.warn("[PoseDetector] Failed to load from:", modelUrl, e.message);
@@ -208,6 +212,51 @@ const PoseDetector = (() => {
     return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
   }
 
+  /**
+   * Run detection on a static image. Creates a temporary IMAGE-mode landmarker.
+   * @param {HTMLImageElement|HTMLCanvasElement} image
+   * @returns {object|null} same format as detect()
+   */
+  async function detectImage(image) {
+    if (!cachedWasmFileset || !cachedModelPath) {
+      throw new Error("PoseDetector not initialized. Call init() first.");
+    }
+
+    const { PoseLandmarker } = await import("@mediapipe/tasks-vision");
+
+    const imageLandmarker = await PoseLandmarker.createFromOptions(cachedWasmFileset, {
+      baseOptions: { modelAssetPath: cachedModelPath, delegate: "GPU" },
+      runningMode: "IMAGE",
+      numPoses: 1,
+      minPoseDetectionConfidence: 0.3,
+      minPosePresenceConfidence: 0.3,
+      minTrackingConfidence: 0.3
+    });
+
+    try {
+      const result = imageLandmarker.detect(image);
+      if (!result || !result.landmarks || result.landmarks.length === 0) {
+        return null;
+      }
+
+      const raw = result.landmarks[0];
+      const landmarks = {};
+      for (let i = 0; i < raw.length; i++) {
+        const name = INDEX_TO_NAME[i];
+        if (name) {
+          landmarks[name] = {
+            x: raw[i].x, y: raw[i].y, z: raw[i].z,
+            visibility: raw[i].visibility
+          };
+        }
+      }
+
+      return { landmarks, timestamp_ms: Date.now(), raw, world_landmarks: result.worldLandmarks?.[0] || null };
+    } finally {
+      imageLandmarker.close();
+    }
+  }
+
   function dispose() {
     if (poseLandmarker) {
       poseLandmarker.close();
@@ -220,6 +269,7 @@ const PoseDetector = (() => {
   return {
     init,
     detect,
+    detectImage,
     areLandmarksVisible,
     midpoint,
     LANDMARK_NAMES,
