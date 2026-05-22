@@ -471,7 +471,10 @@ const PostureApp = (() => {
       llmWebllmModel: document.getElementById("llm-webllm-model"),
       llmSettingsSave: document.getElementById("btn-llm-settings-save"),
       photoInput: document.getElementById("photo-input"),
-      photoUploadBtn: document.getElementById("btn-photo-upload")
+      photoUploadBtn: document.getElementById("btn-photo-upload"),
+      llmTestBtn: document.getElementById("btn-llm-test"),
+      llmPullBtn: document.getElementById("btn-llm-pull"),
+      llmTestResult: document.getElementById("llm-test-result")
     };
 
     // Set canvas size
@@ -528,14 +531,43 @@ const PostureApp = (() => {
       updateLLMSettingsUI();
     });
 
-    elements.llmSettingsSave.addEventListener("click", () => {
-      LLMClient.backend = elements.llmBackendSelect.value;
-      LLMClient.ollamaEndpoint = elements.llmEndpointInput.value || LLMClient.ollamaEndpoint;
-      LLMClient.ollamaModel = elements.llmOllamaModelInput.value || LLMClient.ollamaModel;
-      LLMClient.webllmModel = elements.llmWebllmModel.value || LLMClient.webllmModel;
-      elements.llmSettingsPanel.classList.remove("visible");
-      const backendLabel = LLMClient.backend === "webllm" ? "WebLLM (浏览器内置)" : "Ollama";
-      showToast(`LLM 已切换至 ${backendLabel}`, "success");
+    // Test Ollama connection
+    elements.llmTestBtn.addEventListener("click", async () => {
+      const resultEl = elements.llmTestResult;
+      const endpoint = elements.llmEndpointInput.value;
+      const model = elements.llmOllamaModelInput.value;
+      resultEl.style.display = "block";
+      resultEl.style.color = "#ff9800";
+      resultEl.textContent = "⏳ 检测中...";
+
+      try {
+        const resp = await fetch(endpoint.replace("/api/generate", "/api/tags"), {
+          signal: AbortSignal.timeout(5000)
+        });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const data = await resp.json();
+        const models = (data.models || []).map(m => m.name);
+        const hasModel = models.some(m => m.startsWith(model.split(":")[0]));
+        if (hasModel) {
+          resultEl.style.color = "#00e676";
+          resultEl.textContent = `✅ 连接成功！模型 "${model}" 已就绪。可用模型: ${models.join(", ")}`;
+        } else {
+          resultEl.style.color = "#ff9800";
+          resultEl.textContent = `⚠️ 服务在线，但模型 "${model}" 未安装。可用: ${models.join(", ") || "无"}`;
+          elements.llmPullBtn.style.display = "inline-block";
+        }
+      } catch (e) {
+        resultEl.style.color = "#f44336";
+        resultEl.textContent = `❌ 无法连接: ${e.message}。请确认：\n1. 电脑已运行 ollama serve\n2. 地址正确（手机填电脑IP）\n3. 手机和电脑同一WiFi`;
+      }
+    });
+
+    // Pull model hint
+    elements.llmPullBtn.addEventListener("click", () => {
+      const model = elements.llmOllamaModelInput.value;
+      elements.llmTestResult.style.display = "block";
+      elements.llmTestResult.style.color = "#ff9800";
+      elements.llmTestResult.textContent = `请在电脑终端运行：\n\n  ollama pull ${model}\n\n下载完成后点击「测试连接」验证。`;
     });
 
     function updateLLMSettingsUI() {

@@ -21,12 +21,12 @@
   </script>
 
   <!-- Application Scripts (order matters: no deps → with deps → orchestrator) -->
-  <script src="js/pose_detector.js?v=5"></script>
-  <script src="js/posture_analyzer.js?v=5"></script>
-  <script src="js/posture_rules.js?v=5"></script>
-  <script src="js/visualizer.js?v=5"></script>
-  <script src="js/llm_client.js?v=5"></script>
-  <script src="js/app.js?v=5"></script>
+  <script src="js/pose_detector.js?v=6"></script>
+  <script src="js/posture_analyzer.js?v=6"></script>
+  <script src="js/posture_rules.js?v=6"></script>
+  <script src="js/visualizer.js?v=6"></script>
+  <script src="js/llm_client.js?v=6"></script>
+  <script src="js/app.js?v=6"></script>
 </head>
 <body>
   <div class="app-container">
@@ -146,9 +146,14 @@
         <p style="font-size:10px;color:#f44336;margin-top:6px;">⚠ 国内网络无法访问 Hugging Face，WebLLM 基本不可用。推荐使用 Ollama。</p>
       </div>
 
-      <p style="font-size:11px;color:#888;margin-bottom:12px;">
+      <p style="font-size:11px;color:#888;margin-bottom:8px;">
         💡 手机用户：电脑运行 <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:3px;">ollama serve</code>，手机连同一 WiFi，地址填电脑 IP
       </p>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="btn btn-sm" id="btn-llm-test" style="flex:1;">🔍 测试连接</button>
+        <button class="btn btn-sm" id="btn-llm-pull" style="flex:1;">⬇ 下载模型</button>
+      </div>
+      <div id="llm-test-result" style="font-size:11px;margin-bottom:8px;display:none;"></div>
       <button class="btn btn-primary" id="btn-llm-settings-save" style="width:100%;">保存设置</button>
     </div>
 
