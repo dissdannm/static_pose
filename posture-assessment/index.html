@@ -21,12 +21,12 @@
   </script>
 
   <!-- Application Scripts (order matters: no deps → with deps → orchestrator) -->
-  <script src="js/pose_detector.js?v=4"></script>
-  <script src="js/posture_analyzer.js?v=4"></script>
-  <script src="js/posture_rules.js?v=4"></script>
-  <script src="js/visualizer.js?v=4"></script>
-  <script src="js/llm_client.js?v=4"></script>
-  <script src="js/app.js?v=4"></script>
+  <script src="js/pose_detector.js?v=5"></script>
+  <script src="js/posture_analyzer.js?v=5"></script>
+  <script src="js/posture_rules.js?v=5"></script>
+  <script src="js/visualizer.js?v=5"></script>
+  <script src="js/llm_client.js?v=5"></script>
+  <script src="js/app.js?v=5"></script>
 </head>
 <body>
   <div class="app-container">
@@ -143,11 +143,11 @@
         <label>浏览器内置模型（WebGPU）</label>
         <select id="llm-webllm-model" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#e0e0e0;font-size:14px;font-family:var(--font-sans);outline:none;">
         </select>
-        <p style="font-size:10px;color:#888;margin-top:6px;">首次使用需下载模型 (~1-2GB)，之后缓存到浏览器。需支持 WebGPU 的浏览器。</p>
+        <p style="font-size:10px;color:#f44336;margin-top:6px;">⚠ 国内网络无法访问 Hugging Face，WebLLM 基本不可用。推荐使用 Ollama。</p>
       </div>
 
       <p style="font-size:11px;color:#888;margin-bottom:12px;">
-        Ollama 安装: <a href="https://ollama.com" target="_blank" style="color:var(--accent);">ollama.com</a> · 模型: <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:3px;">ollama pull qwen2.5:3b</code>
+        💡 手机用户：电脑运行 <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:3px;">ollama serve</code>，手机连同一 WiFi，地址填电脑 IP
       </p>
       <button class="btn btn-primary" id="btn-llm-settings-save" style="width:100%;">保存设置</button>
     </div>

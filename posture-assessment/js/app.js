@@ -305,7 +305,13 @@ const PostureApp = (() => {
       console.error("[App] LLM error:", err);
       progressBar.style.display = "none";
       progressText.style.display = "none";
-      llmText.textContent = `生成失败: ${err.message}\n\n使用规则引擎报告:\n\n${LLMClient.generateFallbackReport(snapshotData.assessment, snapshotData.view)}`;
+      let hint = "";
+      if (LLMClient.backend === "webllm") {
+        hint = "\n\n⚠️ WebLLM 需要访问 Hugging Face 下载模型，国内网络可能被墙。\n建议切换为 Ollama 后端：电脑运行 ollama serve，手机连同一 WiFi 访问。\n";
+      } else {
+        hint = "\n\n💡 提示：请确保 Ollama 正在运行（ollama serve），且地址正确。\n可在设置中检查 Ollama 服务地址。\n";
+      }
+      llmText.textContent = `生成失败: ${err.message}${hint}\n\n--- 规则引擎报告 ---\n\n${LLMClient.generateFallbackReport(snapshotData.assessment, snapshotData.view)}`;
       elements.llmGenerateBtn.textContent = "重试";
     } finally {
       elements.llmGenerateBtn.disabled = false;
