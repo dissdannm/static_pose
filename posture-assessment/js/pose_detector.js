@@ -37,7 +37,14 @@ const PoseDetector = (() => {
   // WASM configuration — multiple CDN mirrors for China accessibility
   const WASM_BASE = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm";
   const WASM_FALLBACK = "https://unpkg.com/@mediapipe/tasks-vision@0.10.18/wasm";
-  const MODEL_URL = "./models/pose_landmarker_heavy.task";  // local file, avoids Google CDN blockage
+
+  // Model sources — tried in order until one succeeds
+  const MODEL_SOURCES = [
+    "./models/pose_landmarker_lite.task",     // local lite (5.6MB, pushable to GitHub)
+    "./models/pose_landmarker_heavy.task",    // local heavy (30MB, local dev only)
+    "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
+    "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task"
+  ];
 
   /**
    * Initialize the pose landmarker.
@@ -55,32 +62,75 @@ const PoseDetector = (() => {
     const wasmFallback = options.wasmFallback || WASM_FALLBACK;
 
     loadingPromise = (async () => {
+      const TIMEOUT_MS = 30000; // 30s timeout
+
+      // Helper: race a promise against a timeout
+      const withTimeout = (promise, label) => {
+        return Promise.race([
+          promise,
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`超时: ${label}`)), TIMEOUT_MS)
+          )
+        ]);
+      };
+
       // 1) Load WASM (try primary CDN, fallback to unpkg for China)
       let wasmFileset;
       onStatus("加载 WASM...");
       try {
-        const visionModule = await import("@mediapipe/tasks-vision");
+        const visionModule = await withTimeout(
+          import("@mediapipe/tasks-vision"),
+          "ES模块导入"
+        );
         const { PoseLandmarker, FilesetResolver } = visionModule;
         try {
-          wasmFileset = await FilesetResolver.forVisionTasks(wasmPrimary);
+          wasmFileset = await withTimeout(
+            FilesetResolver.forVisionTasks(wasmPrimary),
+            "WASM 下载(主)"
+          );
         } catch (e) {
           console.warn("[PoseDetector] Primary WASM CDN failed, trying fallback...", e.message);
-          wasmFileset = await FilesetResolver.forVisionTasks(wasmFallback);
+          onStatus("切换备用CDN...");
+          wasmFileset = await withTimeout(
+            FilesetResolver.forVisionTasks(wasmFallback),
+            "WASM 下载(备)"
+          );
         }
 
-        // 2) Load pose model from local file
-        onStatus("加载模型文件...");
-        poseLandmarker = await PoseLandmarker.createFromOptions(wasmFileset, {
-          baseOptions: {
-            modelAssetPath: options.modelPath || MODEL_URL,
-            delegate: options.delegate || "GPU"
-          },
-          runningMode: "VIDEO",
-          numPoses: 1,
-          minPoseDetectionConfidence: 0.5,
-          minPosePresenceConfidence: 0.5,
-          minTrackingConfidence: 0.5
-        });
+        // 2) Load pose model — try multiple sources until one works
+        const modelSources = options.modelPath
+          ? [options.modelPath]
+          : MODEL_SOURCES;
+        let lastError = null;
+
+        for (const modelUrl of modelSources) {
+          onStatus("加载模型: " + modelUrl.split("/").pop());
+          try {
+            poseLandmarker = await withTimeout(
+              PoseLandmarker.createFromOptions(wasmFileset, {
+                baseOptions: {
+                  modelAssetPath: modelUrl,
+                  delegate: options.delegate || "GPU"
+                },
+                runningMode: "VIDEO",
+                numPoses: 1,
+                minPoseDetectionConfidence: 0.5,
+                minPosePresenceConfidence: 0.5,
+                minTrackingConfidence: 0.5
+              }),
+              "模型加载(" + modelUrl.split("/").pop() + ")"
+            );
+            console.log("[PoseDetector] Model loaded from:", modelUrl);
+            break; // success, stop trying
+          } catch (e) {
+            console.warn("[PoseDetector] Failed to load from:", modelUrl, e.message);
+            lastError = e;
+          }
+        }
+
+        if (!poseLandmarker) {
+          throw new Error("所有模型源加载失败: " + (lastError ? lastError.message : "未知错误"));
+        }
       } catch (err) {
         console.error("[PoseDetector] Model load failed:", err);
         loadingPromise = null;

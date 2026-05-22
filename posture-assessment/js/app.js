@@ -468,22 +468,26 @@ const PostureApp = (() => {
       });
       isPoseReady = true;
       elements.statusText.textContent = "就绪";
+      elements.statusDot.style.background = "#00e676";
       showToast("模型加载完成", "success");
     } catch (err) {
       console.error("[App] PoseDetector init failed:", err);
+      // Show error directly on status bar so user can see without console
+      elements.statusText.textContent = "GPU失败: " + (err.message || err);
       // Try CPU fallback
       try {
-        elements.statusText.textContent = "GPU失败，尝试CPU...";
-        showToast("GPU失败，尝试CPU模式...", "warning");
+        showToast("GPU失败，尝试CPU...", "warning");
         await PoseDetector.init({
           delegate: "CPU",
           onStatus: (msg) => { elements.statusText.textContent = msg; }
         });
         isPoseReady = true;
         elements.statusText.textContent = "就绪(CPU)";
+        elements.statusDot.style.background = "#ff9800";
         showToast("模型加载完成(CPU)", "success");
       } catch (err2) {
-        elements.statusText.textContent = "加载失败";
+        elements.statusText.textContent = "加载失败! " + (err2.message || err2);
+        elements.statusDot.style.background = "#f44336";
         showToast("模型加载失败，请刷新重试", "error");
         elements.startBtn.disabled = true;
       }
