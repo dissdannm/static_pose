@@ -695,6 +695,18 @@ function generateMarkdownReport(assessment, view) {
   return md;
 }
 
+/**
+ * Strip AI prompt section from markdown, leaving human-readable content only.
+ */
+function stripAIPromptFromMD(md) {
+  const promptStart = md.indexOf("> **使用方式**");
+  const dataStart = md.indexOf("## 基本信息");
+  if (promptStart !== -1 && dataStart !== -1) {
+    return "# 体态评估报告\n\n" + md.substring(dataStart);
+  }
+  return md;
+}
+
 // Export for module use (also available as globals)
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { POSTURE_METRICS, POSTURE_REGIONS, evaluateMetric, evaluateAllMetrics, buildLLMPrompt, generateMarkdownReport };
