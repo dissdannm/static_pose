@@ -147,12 +147,34 @@ const LLMClient = (() => {
         "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.83/+esm"
       );
 
-      webllmEngine = await CreateMLCEngine(webllmModel, {
-        initProgressCallback: (report) => {
-          webllmLoadProgress = report.progress;
-          if (onProgress) onProgress(report);
-        }
-      });
+      // Try with HF mirror first (faster in China), fallback to default catalog
+      let engine;
+      try {
+        const hfModelUrl = "https://hf-mirror.com/mlc-ai/" + webllmModel + "/resolve/main/";
+        engine = await CreateMLCEngine(webllmModel, {
+          appConfig: {
+            model_list: [{
+              model_id: webllmModel,
+              model_url: hfModelUrl
+            }]
+          },
+          initProgressCallback: (report) => {
+            webllmLoadProgress = report.progress;
+            if (onProgress) onProgress(report);
+          }
+        });
+      } catch (mirrorErr) {
+        // Fallback: use default HuggingFace catalog
+        console.warn("[WebLLM] HF mirror failed, trying default:", mirrorErr.message);
+        engine = await CreateMLCEngine(webllmModel, {
+          initProgressCallback: (report) => {
+            webllmLoadProgress = report.progress;
+            if (onProgress) onProgress(report);
+          }
+        });
+      }
+
+      webllmEngine = engine;
 
       webllmLoading = false;
       return webllmEngine;
