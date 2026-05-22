@@ -7,14 +7,14 @@
 
 const LLMClient = (() => {
   // ─── Shared config ──────────────────────────────────────────────────────────
-  let llmBackend = "ollama";  // "ollama" | "webllm"
+  let llmBackend = "webllm";  // "ollama" | "webllm" — webllm default (works on HTTPS GitHub Pages)
 
   // Ollama settings
   let ollamaEndpoint = "http://localhost:11434/api/generate";
   let ollamaModel = "qwen2.5:3b";
 
   // WebLLM settings
-  let webllmModel = "SmolLM2-1.7B-Instruct-q4f16_1-MLC";
+  let webllmModel = "SmolLM2-1.7B-Instruct-q4f32_1-MLC";
   let webllmEngine = null;
   let webllmLoading = false;
   let webllmLoadProgress = 0;
@@ -144,7 +144,7 @@ const LLMClient = (() => {
 
     try {
       const { CreateMLCEngine } = await import(
-        "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.70/+esm"
+        "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.83/+esm"
       );
 
       webllmEngine = await CreateMLCEngine(webllmModel, {

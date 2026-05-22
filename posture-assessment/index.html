@@ -21,12 +21,12 @@
   </script>
 
   <!-- Application Scripts (order matters: no deps → with deps → orchestrator) -->
-  <script src="js/pose_detector.js?v=8"></script>
-  <script src="js/posture_analyzer.js?v=8"></script>
-  <script src="js/posture_rules.js?v=8"></script>
-  <script src="js/visualizer.js?v=8"></script>
-  <script src="js/llm_client.js?v=8"></script>
-  <script src="js/app.js?v=8"></script>
+  <script src="js/pose_detector.js?v=9"></script>
+  <script src="js/posture_analyzer.js?v=9"></script>
+  <script src="js/posture_rules.js?v=9"></script>
+  <script src="js/visualizer.js?v=9"></script>
+  <script src="js/llm_client.js?v=9"></script>
+  <script src="js/app.js?v=9"></script>
 </head>
 <body>
   <div class="app-container">
@@ -146,11 +146,9 @@
         <p style="font-size:10px;color:#888;margin-top:6px;">模型首次下载 ~1GB，需访问 Hugging Face。之后缓存浏览器，秒开。</p>
       </div>
 
-      <p style="font-size:11px;color:#888;margin-bottom:8px;">
-        💡 电脑端需同时设环境变量避免跨域问题：<br>
-        <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:3px;">set OLLAMA_HOST=0.0.0.0</code><br>
-        <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:3px;">set OLLAMA_ORIGINS=*</code><br>
-        然后 <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:3px;">ollama serve</code>
+      <p style="font-size:10px;color:#f44336;margin-bottom:8px;">
+        ⚠️ GitHub Pages 是 HTTPS，手机浏览器会拦截 HTTP 的 Ollama 请求。<br>
+        解决方案：① 用 WebLLM（推荐），或 ② 电脑访问 <code>http://localhost:8000</code> 本地版
       </p>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <button class="btn btn-sm" id="btn-llm-test" style="flex:1;">🔍 测试连接</button>
