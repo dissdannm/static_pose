@@ -240,19 +240,44 @@ const PostureApp = (() => {
     try {
       if (LLMClient.backend === "webllm") {
         // ── WebLLM path ──
-        elements.llmGenerateBtn.textContent = "下载模型中...";
+        elements.llmGenerateBtn.textContent = "准备中...";
         llmText.textContent = "";
         progressBar.style.display = "block";
+        progressBar.value = 0;
         progressText.style.display = "block";
+        progressText.textContent = "检查 WebGPU...";
+
+        let lastProgressText = "";
+        let loadStartTime = Date.now();
 
         const report = await LLMClient.generateWithWebLLM(prompt, {
           model: elements.llmWebllmModel ? elements.llmWebllmModel.value : undefined,
           onProgress: (report) => {
             const pct = Math.round(report.progress * 100);
             progressBar.value = report.progress;
-            progressText.textContent = report.text || `加载中 ${pct}%`;
+            const elapsed = Math.round((Date.now() - loadStartTime) / 1000);
+            let statusText = report.text || "";
+            if (pct >= 100 && !statusText) {
+              statusText = `正在编译 GPU 着色器... 已等待 ${elapsed}s`;
+            } else if (!statusText) {
+              statusText = `下载中 ${pct}% (${elapsed}s)`;
+            }
+            progressText.textContent = statusText;
+            if (statusText !== lastProgressText) {
+              lastProgressText = statusText;
+              // Also show in llm output
+              if (pct < 100 || pct >= 100) {
+                llmText.textContent = statusText + "\n";
+              }
+            }
+            elements.llmGenerateBtn.textContent = pct >= 100 ? "加载 GPU..." : `下载 ${pct}%`;
           },
           onToken: (token) => {
+            if (progressBar.style.display !== "none") {
+              progressBar.style.display = "none";
+              progressText.style.display = "none";
+              llmText.textContent = "";
+            }
             llmText.textContent += token;
             llmText.scrollTop = llmText.scrollHeight;
           }
