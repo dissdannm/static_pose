@@ -14,18 +14,18 @@ const LLMClient = (() => {
   let ollamaModel = "qwen2.5:3b";
 
   // WebLLM settings
-  let webllmModel = "SmolLM2-1.7B-Instruct-q4f32_1-MLC";
+  let webllmModel = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
   let webllmEngine = null;
   let webllmLoading = false;
   let webllmLoadProgress = 0;
 
   // Available WebLLM models (small, mobile-friendly, verified working)
   const WEBLLM_MODELS = [
-    { id: "SmolLM2-1.7B-Instruct-q4f16_1-MLC",       name: "SmolLM2 1.7B (推荐)",  size: "~1.0 GB" },
-    { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC",        name: "Llama 3.2 1B (最小)",  size: "~0.7 GB" },
+    { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC",        name: "Llama 3.2 1B (最小最稳)",  size: "~0.7 GB" },
+    { id: "SmolLM2-1.7B-Instruct-q4f16_1-MLC",       name: "SmolLM2 1.7B",         size: "~1.0 GB" },
     { id: "gemma-2-2b-it-q4f16_1-MLC",                name: "Gemma 2 2B",           size: "~1.3 GB" },
-    { id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",       name: "Qwen2.5 1.5B",         size: "~1.0 GB" },
-    { id: "Qwen2.5-3B-Instruct-q4f16_1-MLC",         name: "Qwen2.5 3B",           size: "~2.0 GB" }
+    { id: "Qwen3-0.6B-q4f16_1-MLC",                  name: "Qwen3 0.6B (最轻)",    size: "~0.4 GB" },
+    { id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",       name: "Qwen2.5 1.5B",         size: "~1.0 GB" }
   ];
 
   // ─── Ollama Backend ─────────────────────────────────────────────────────────
@@ -179,14 +179,27 @@ const LLMClient = (() => {
 
     const engine = await loadWebLLMEngine(onProgress);
 
-    // OpenAI-compatible chat API
-    const reply = await engine.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      max_tokens: 1024
-    });
-
-    return reply.choices[0].message.content;
+    // Try chat API; if model not loaded, reload and retry
+    try {
+      const reply = await engine.chat.completions.create({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 1024
+      });
+      return reply.choices[0].message.content;
+    } catch (e) {
+      if (e.message && e.message.includes("Model not loaded")) {
+        onProgress({ progress: 1, text: "重新加载模型到 GPU..." });
+        await engine.reload(modelId);
+        const reply = await engine.chat.completions.create({
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.7,
+          max_tokens: 1024
+        });
+        return reply.choices[0].message.content;
+      }
+      throw e;
+    }
   }
 
   /**
@@ -204,22 +217,35 @@ const LLMClient = (() => {
 
     const engine = await loadWebLLMEngine(onProgress);
 
-    const reply = await engine.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      max_tokens: 1024,
-      stream: true
-    });
-
-    let fullText = "";
-    for await (const chunk of reply) {
-      const content = chunk.choices?.[0]?.delta?.content || "";
-      if (content) {
-        fullText += content;
-        onToken(content);
+    // Try chat API; if model not loaded, reload and retry
+    const doStream = async () => {
+      const reply = await engine.chat.completions.create({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 1024,
+        stream: true
+      });
+      let fullText = "";
+      for await (const chunk of reply) {
+        const content = chunk.choices?.[0]?.delta?.content || "";
+        if (content) {
+          fullText += content;
+          onToken(content);
+        }
       }
+      return fullText;
+    };
+
+    try {
+      return await doStream();
+    } catch (e) {
+      if (e.message && e.message.includes("Model not loaded")) {
+        onProgress({ progress: 1, text: "重新加载模型到 GPU..." });
+        await engine.reload(modelId);
+        return await doStream();
+      }
+      throw e;
     }
-    return fullText;
   }
 
   async function unloadWebLLM() {
